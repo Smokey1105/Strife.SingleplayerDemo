@@ -15,7 +15,11 @@ add_executable(SingleplayerDemo
 	"FireballEntity.cpp"
 	"FireballEntity.hpp"
 	"PlayerNeuralNetworkService.hpp"
-	"PlayerNeuralNetworkService.cpp")
+	"PlayerNeuralNetworkService.cpp"
+	"TowerEntity.cpp" 
+	"TowerEntity.hpp"
+	"MinionEntity.cpp"
+	"MinionEntity.hpp")
 
 set_property(TARGET SingleplayerDemo PROPERTY CXX_STANDARD 17)
 

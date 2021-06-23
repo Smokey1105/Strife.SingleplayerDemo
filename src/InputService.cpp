@@ -4,6 +4,7 @@
 #include "Tools/Console.hpp"
 
 #include "CastleEntity.hpp"
+#include "TowerEntity.hpp"
 
 InputButton g_quit = InputButton(SDL_SCANCODE_ESCAPE);
 InputButton g_upButton(SDL_SCANCODE_W);
@@ -15,6 +16,11 @@ void InputService::ReceiveEvent(const IEntityEvent& ev)
 {
     if (ev.Is<SceneLoadedEvent>())
     {
+        scene->CreateEntity<CastleEntity>(Vector2(327.5, 1040));
+        scene->CreateEntity<CastleEntity>(Vector2(3832.5, 1040));
+        scene->CreateEntity<TowerEntity>(Vector2(1260, 1040));
+        scene->CreateEntity<TowerEntity>(Vector2(2900, 1040));
+
         auto spawnPoints = scene->GetEntitiesOfType<CastleEntity>();
 
     	int playerId = 0;
@@ -123,11 +129,8 @@ void InputService::SpawnPlayer(CastleEntity* spawn, int playerId)
 {
     spawn->playerId = playerId;
 
-    for (int i = 0; i < 4; ++i)
-    {
-        spawn->SpawnPlayer();
-    }
-
+    spawn->SpawnPlayer();
+  
     spawns.push_back(spawn);
 
     if (playerId == 0)
