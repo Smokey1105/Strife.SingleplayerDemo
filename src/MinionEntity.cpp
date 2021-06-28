@@ -76,9 +76,18 @@ void MinionEntity::Start()
 
 void MinionEntity::Render(Renderer* renderer)
 {
-    renderer->RenderCircleOutline(Center(), engagementRadius, Color::Red(), -1);
-    renderer->RenderCircleOutline(Center(), reach, Color::Red(), -1);
-    renderer->RenderRectangle(Rectangle(Center() - Dimensions() / 2, Dimensions()), Color::Red(), -0.99);
+    Color color = Color::Red();
+
+    if (team->teamId == 0)
+    {
+        color = Color::Purple();
+    }
+
+    renderer->RenderCircleOutline(Center(), engagementRadius, color, -1);
+   
+    // Debug: shows aggro and melee ranges
+    // renderer->RenderCircleOutline(Center(), reach, color, -1);
+    // renderer->RenderRectangle(Rectangle(Center() - Dimensions() / 2, Dimensions()), color, -0.99);
 }
 
 void MinionEntity::FixedUpdate(float deltaTime)
