@@ -3,8 +3,11 @@
 #include <Components/PathFollowerComponent.hpp>
 #include "GameML.hpp"
 #include "Components/NetComponent.hpp"
+#include "ML/ML.hpp"
 #include "Scene/BaseEntity.hpp"
+#include "Scene/IEntityEvent.hpp"
 #include "HealthBarComponent.hpp"
+#include "TeamComponent.hpp"
 
 enum class PlayerState
 {
@@ -29,6 +32,8 @@ enum class MoveDirection
 
 DEFINE_ENTITY(PlayerEntity, "player")
 {
+    using NeuralNetwork = NeuralNetworkComponent<PlayerNetwork>;
+
     void Attack(Entity* entity);
     void SetMoveDirection(Vector2 direction);
 
@@ -42,7 +47,7 @@ DEFINE_ENTITY(PlayerEntity, "player")
     RigidBodyComponent* rigidBody;
     PathFollowerComponent* pathFollower;
     HealthBarComponent* health;
-	GridSensorComponent<40,40>* gridSensor;
+    TeamComponent* team;
 
     EntityReference<Entity> attackTarget;
     PlayerState state = PlayerState::None;

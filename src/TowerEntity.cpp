@@ -7,6 +7,7 @@
 #include "Components/SpriteComponent.hpp"
 #include "Physics/PathFinding.hpp"
 #include "Net/ReplicationManager.hpp"
+#include "TeamComponent.hpp"
 
 void TowerEntity::DoSerialize(EntitySerializer& serializer)
 {
@@ -30,6 +31,8 @@ void TowerEntity::OnAdded()
     health->maxHealth = 500;
     health->health = 500;
 
+    team = AddComponent<TeamComponent>();
+
     auto offset = size / 2 + Vector2(40, 40);
 
     _light = AddComponent<LightComponent<PointLight>>();
@@ -37,6 +40,8 @@ void TowerEntity::OnAdded()
     _light->intensity = 0.5;
     _light->maxDistance = 500;
     _light->maxDistance = 500;
+
+    region = rigidBody->CreateCircleCollider(reach, true);
 }
 
 void TowerEntity::Update(float deltaTime)
@@ -149,10 +154,9 @@ void TowerEntity::OnUpdateState()
                 continue;
             }
 
-            NetComponent* targetEntityNetComponent;
-            if (target->TryGetComponent(targetEntityNetComponent))
-            {
-                if (targetEntityNetComponent->ownerClientId == net->ownerClientId)
+            TeamComponent* teamComponent;
+            if (target->TryGetComponent(teamComponent)) {
+                if (teamComponent->teamId == team->teamId)
                 {
                     continue;
                 }
@@ -207,7 +211,6 @@ void TowerEntity::ShootFireball(Entity* target)
 {
     auto direction = (target->Center() - Center()).Normalize();
 
-    auto fireball = scene->CreateEntity<FireballEntity>(Center(), direction * 400, target);
-    fireball->GetComponent<NetComponent>()->ownerClientId = net->ownerClientId;
-    fireball->ownerId = id;
+    auto fireball = scene->CreateEntity<FireballEntity>(Center(), direction * 400);
+    fireball->playerId = playerId;
 }

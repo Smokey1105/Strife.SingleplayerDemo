@@ -69,6 +69,8 @@ void PlayerEntity::OnAdded()
     rigidBody = AddComponent<RigidBodyComponent>(b2_dynamicBody);
     //pathFollower = AddComponent<PathFollowerComponent>(rigidBody);
 
+    team = AddComponent<TeamComponent>();
+
     SetDimensions({ 30, 30 });
     auto box = rigidBody->CreateBoxCollider(Dimensions());
 

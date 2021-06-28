@@ -1,10 +1,13 @@
 #include "InputService.hpp"
 #include "Components/RigidBodyComponent.hpp"
+#include "Physics/PathFinding.hpp"
 #include "Renderer/Renderer.hpp"
 #include "Tools/Console.hpp"
 
 #include "CastleEntity.hpp"
 #include "TowerEntity.hpp"
+#include "MinionEntity.hpp"
+#include "TeamComponent.hpp"
 
 InputButton g_quit = InputButton(SDL_SCANCODE_ESCAPE);
 InputButton g_upButton(SDL_SCANCODE_W);
@@ -16,18 +19,24 @@ void InputService::ReceiveEvent(const IEntityEvent& ev)
 {
     if (ev.Is<SceneLoadedEvent>())
     {
-        scene->CreateEntity<CastleEntity>(Vector2(327.5, 1040));
-        scene->CreateEntity<CastleEntity>(Vector2(3832.5, 1040));
-        scene->CreateEntity<TowerEntity>(Vector2(1260, 1040));
-        scene->CreateEntity<TowerEntity>(Vector2(2900, 1040));
+        CastleEntity* castle1 = scene->CreateEntity<CastleEntity>(Vector2(327.5, 1040));
+        CastleEntity* castle2 = scene->CreateEntity<CastleEntity>(Vector2(3832.5, 1040));
+        TowerEntity* tower1 = scene->CreateEntity<TowerEntity>(Vector2(1260, 1040));
+        TowerEntity* tower2 = scene->CreateEntity<TowerEntity>(Vector2(2900, 1040));
+        MinionSpawner* minionSpawner1 = scene->CreateEntity<MinionSpawner>(Vector2(520, 1040));
+        MinionSpawner* minionSpawner2 = scene->CreateEntity<MinionSpawner>(Vector2(3640, 1040));
+
+        castle1->tower = tower1;
+        castle1->minionSpawner = minionSpawner1;
+        castle2->tower = tower2;
+        castle2->minionSpawner = minionSpawner2;
 
         auto spawnPoints = scene->GetEntitiesOfType<CastleEntity>();
 
-    	int playerId = 0;
-        for (auto i = spawnPoints.begin(); i != spawnPoints.end(); ++i)
+        for (int i = 0; i < spawnPoints.size(); ++i)
         {
-            SpawnPlayer(*i, playerId++);
-        }
+            SpawnPlayer(spawnPoints[i], i);
+        }     
     }
     if (ev.Is<UpdateEvent>())
     {
@@ -65,11 +74,11 @@ void InputService::HandleInput()
                     PlayerEntity* oldPlayer;
                     if (activePlayer.TryGetValue(oldPlayer))
                     {
-                        //oldPlayer->GetComponent<PlayerEntity::NeuralNetwork>()->mode = NeuralNetworkMode::Deciding;
+                        oldPlayer->GetComponent<PlayerEntity::NeuralNetwork>()->mode = NeuralNetworkMode::Deciding;
                     }
 
                     activePlayer = player;
-                    //player->GetComponent<PlayerEntity::NeuralNetwork>()->mode = NeuralNetworkMode::CollectingSamples;
+                    player->GetComponent<PlayerEntity::NeuralNetwork>()->mode = NeuralNetworkMode::CollectingSamples;
 
                     scene->GetCameraFollower()->FollowEntity(player);
 
@@ -128,8 +137,15 @@ MoveDirection InputService::GetInputDirection()
 void InputService::SpawnPlayer(CastleEntity* spawn, int playerId)
 {
     spawn->playerId = playerId;
+    spawn->tower->playerId = playerId;
+    spawn->team->teamId = playerId;
+    spawn->tower->team->teamId = playerId;
+    spawn->minionSpawner->team->teamId = playerId;
 
-    spawn->SpawnPlayer();
+    for (int i = 0; i < 2; ++i)
+    {
+        spawn->SpawnPlayer();
+    }
   
     spawns.push_back(spawn);
 

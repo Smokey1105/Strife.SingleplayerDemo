@@ -5,6 +5,7 @@
 #include "Components/LightComponent.hpp"
 #include "Scene/BaseEntity.hpp"
 #include "Scene/IEntityEvent.hpp"
+#include "TeamComponent.hpp"
 
 enum class TowerEntityAiState { DoNothing, SearchForTarget, AttackSelectedTarget };
 struct TowerEntityState
@@ -28,6 +29,8 @@ DEFINE_ENTITY(TowerEntity, "tower")
     int playerId;
     float reach = 250.0f;
     float FireballTimeoutLength = 0.75f;
+
+    TeamComponent* team;
 
 private:
     float _colorChangeTime = 0;

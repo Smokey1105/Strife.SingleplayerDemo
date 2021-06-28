@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Scene/EntityComponent.hpp"
-#include "Net/SyncVar.hpp"
 #include "Scene/IEntityEvent.hpp"
 
 DEFINE_EVENT(OutOfHealthEvent)
@@ -13,6 +12,19 @@ DEFINE_EVENT(OutOfHealthEvent)
     }
 
     Entity* killer;
+};
+
+DEFINE_EVENT(DamageDealtEvent)
+{
+    DamageDealtEvent(Entity * dealer, int damage)
+        : dealer(dealer),
+        damage(damage)
+    {
+
+    }
+
+    Entity* dealer;
+    int damage;
 };
 
 DEFINE_COMPONENT(HealthBarComponent)

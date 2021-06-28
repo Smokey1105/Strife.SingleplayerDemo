@@ -5,6 +5,9 @@
 #include "Components/LightComponent.hpp"
 #include "Scene/BaseEntity.hpp"
 #include "Scene/IEntityEvent.hpp"
+#include "TowerEntity.hpp"
+#include "MinionEntity.hpp"
+#include "TeamComponent.hpp"
 
 DEFINE_ENTITY(CastleEntity, "castle")
 {
@@ -17,6 +20,10 @@ DEFINE_ENTITY(CastleEntity, "castle")
     void DoSerialize(EntitySerializer& serializer) override;
 
     int playerId;
+    TowerEntity* tower;
+    MinionSpawner* minionSpawner;
+
+    TeamComponent* team;
 
 private:
     float _colorChangeTime = 0;

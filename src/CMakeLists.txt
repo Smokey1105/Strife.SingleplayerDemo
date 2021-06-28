@@ -19,7 +19,9 @@ add_executable(SingleplayerDemo
 	"TowerEntity.cpp" 
 	"TowerEntity.hpp"
 	"MinionEntity.cpp"
-	"MinionEntity.hpp")
+	"MinionEntity.hpp"
+	"TeamComponent.cpp"
+	"TeamComponent.hpp")
 
 set_property(TARGET SingleplayerDemo PROPERTY CXX_STANDARD 17)
 

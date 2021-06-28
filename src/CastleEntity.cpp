@@ -29,6 +29,8 @@ void CastleEntity::OnAdded()
     health->maxHealth = 1000;
     health->health = 1000;
 
+    team = AddComponent<TeamComponent>();
+
     auto offset = size / 2 + Vector2(40, 40);
 
     _spawnSlots[0] = Center() + offset.XVector();
@@ -56,6 +58,13 @@ void CastleEntity::SpawnPlayer()
 
     auto player = scene->CreateEntity<PlayerEntity>({ position });
     player->playerId = playerId;
+
+    TeamComponent* playerTeam;
+
+    if (player->TryGetComponent(playerTeam))
+    {
+        playerTeam->teamId = playerId;
+    }
 }
 
 void CastleEntity::OnDestroyed()

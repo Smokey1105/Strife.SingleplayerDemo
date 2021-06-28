@@ -2,6 +2,14 @@
 #include "Components/RigidBodyComponent.hpp"
 #include "Components/NetComponent.hpp"
 #include "HealthBarComponent.hpp"
+#include "TeamComponent.hpp"
+#include "Renderer/Renderer.hpp"
+
+
+void FireballEntity::Render(Renderer* renderer)
+{
+    renderer->RenderCircle(Center(), Radius, Color::Orange(), -1);
+}
 
 void FireballEntity::OnAdded()
 {
@@ -27,7 +35,12 @@ void FireballEntity::ReceiveEvent(const IEntityEvent& ev)
     if (auto contactBegin = ev.Is<ContactBeginEvent>())
     {
         auto other = contactBegin->other.OwningEntity();
-        if (other->id == ownerId) return;
+        TeamComponent* otherTeam;
+
+        if (other->TryGetComponent(otherTeam) && otherTeam->teamId == playerId) {
+            return;
+        }
+
         if (contactBegin->other.IsTrigger()) return;
 
         auto healthBar = other->GetComponent<HealthBarComponent>(false);
