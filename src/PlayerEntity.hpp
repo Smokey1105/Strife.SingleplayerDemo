@@ -36,6 +36,7 @@ DEFINE_ENTITY(PlayerEntity, "player")
 
     void Attack(Entity* entity);
     void SetMoveDirection(Vector2 direction);
+    void MoveTo(Vector2 position);
 
     void OnAdded() override;
     void ReceiveEvent(const IEntityEvent& ev) override;

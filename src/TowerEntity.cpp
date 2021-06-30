@@ -3,11 +3,12 @@
 #include "Engine.hpp"
 #include "PlayerEntity.hpp"
 #include "FireballEntity.hpp"
+#include "CastleEntity.hpp"
+#include "ObstacleComponent.hpp"
 #include "Components/RigidBodyComponent.hpp"
 #include "Components/SpriteComponent.hpp"
 #include "Physics/PathFinding.hpp"
 #include "Net/ReplicationManager.hpp"
-#include "TeamComponent.hpp"
 
 void TowerEntity::DoSerialize(EntitySerializer& serializer)
 {
@@ -21,7 +22,7 @@ void TowerEntity::OnAdded()
 
     Vector2 size{ 11 * 5, 32 * 5 };
     SetDimensions(size);
-    scene->GetService<PathFinderService>()->AddObstacle(Bounds());
+    obstacle = AddComponent<ObstacleComponent>();
 
     auto rigidBody = AddComponent<RigidBodyComponent>(b2_staticBody);
     rigidBody->CreateBoxCollider(size);
@@ -68,7 +69,10 @@ void TowerEntity::OnDestroyed()
         }
     }
 
-    scene->GetService<PathFinderService>()->RemoveObstacle(Bounds());
+    auto castleHealth = castle->AddComponent<HealthBarComponent>();
+    castleHealth->offsetFromCenter = -Vector2(67 * 5, 55 * 5).YVector() / 2 - Vector2(0, 5);
+    castleHealth->maxHealth = 1000;
+    castleHealth->health = 1000;
 }
 
 void TowerEntity::ReceiveEvent(const IEntityEvent& ev)

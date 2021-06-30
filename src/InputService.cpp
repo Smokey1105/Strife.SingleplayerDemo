@@ -21,15 +21,17 @@ void InputService::ReceiveEvent(const IEntityEvent& ev)
     {
         CastleEntity* castle1 = scene->CreateEntity<CastleEntity>(Vector2(327.5, 1040));
         CastleEntity* castle2 = scene->CreateEntity<CastleEntity>(Vector2(3832.5, 1040));
-        TowerEntity* tower1 = scene->CreateEntity<TowerEntity>(Vector2(1260, 1040));
-        TowerEntity* tower2 = scene->CreateEntity<TowerEntity>(Vector2(2900, 1040));
-        MinionSpawner* minionSpawner1 = scene->CreateEntity<MinionSpawner>(Vector2(520, 1040));
-        MinionSpawner* minionSpawner2 = scene->CreateEntity<MinionSpawner>(Vector2(3640, 1040));
+        TowerEntity* tower1 = scene->CreateEntity<TowerEntity>(Vector2(1260, 957));
+        TowerEntity* tower2 = scene->CreateEntity<TowerEntity>(Vector2(2900, 957));
+        MinionSpawner* minionSpawner1 = scene->CreateEntity<MinionSpawner>(Vector2(520, 1123));
+        MinionSpawner* minionSpawner2 = scene->CreateEntity<MinionSpawner>(Vector2(3640, 1123));
 
         castle1->tower = tower1;
         castle1->minionSpawner = minionSpawner1;
         castle2->tower = tower2;
         castle2->minionSpawner = minionSpawner2;
+        tower1->castle = castle1;
+        tower2->castle = castle2;
 
         auto spawnPoints = scene->GetEntitiesOfType<CastleEntity>();
 
@@ -54,64 +56,64 @@ void InputService::HandleInput()
     {
         scene->GetEngine()->QuitGame();
     }
-
-    if (!scene->isServer)
+   
+    if (scene->deltaTime == 0)
     {
-        if (scene->deltaTime == 0)
-        {
-            return;
-        }
+        return;
+    }
 
-        auto mouse = scene->GetEngine()->GetInput()->GetMouse();
+    auto mouse = scene->GetEngine()->GetInput()->GetMouse();
 
-        if (mouse->LeftPressed())
+    if (mouse->LeftPressed())
+    {
+        for (auto player : players)
         {
-            for (auto player : players)
+            if (player->Bounds().ContainsPoint(scene->GetCamera()->ScreenToWorld(mouse->MousePosition()))
+                && player->playerId == 0)
             {
-                if (player->Bounds().ContainsPoint(scene->GetCamera()->ScreenToWorld(mouse->MousePosition()))
-                    && player->playerId == 0)
+                PlayerEntity* oldPlayer;
+                if (activePlayer.TryGetValue(oldPlayer))
                 {
-                    PlayerEntity* oldPlayer;
-                    if (activePlayer.TryGetValue(oldPlayer))
-                    {
-                        oldPlayer->GetComponent<PlayerEntity::NeuralNetwork>()->mode = NeuralNetworkMode::Deciding;
-                    }
-
-                    activePlayer = player;
-                    player->GetComponent<PlayerEntity::NeuralNetwork>()->mode = NeuralNetworkMode::CollectingSamples;
-
-                    scene->GetCameraFollower()->FollowEntity(player);
-
-                    break;
+                    oldPlayer->GetComponent<PlayerEntity::NeuralNetwork>()->mode = NeuralNetworkMode::Deciding;
                 }
-            }
-        }
 
-        PlayerEntity* self;
-        if (activePlayer.TryGetValue(self))
-        {
-            auto direction = GetInputDirection();
-            self->SetMoveDirection(MoveDirectionToVector2(direction) * 200);
-            self->lastDirection = direction;
+                activePlayer = player;
+                player->GetComponent<PlayerEntity::NeuralNetwork>()->mode = NeuralNetworkMode::CollectingSamples;
 
-            if (mouse->RightPressed())
-            {
-                for (auto entity : scene->GetEntities())
-                {
-                    if (entity->GetComponent<HealthBarComponent>(false) == nullptr)
-                    {
-                        continue;
-                    }
+                scene->GetCameraFollower()->FollowEntity(player);
 
-                    if (entity->Bounds().ContainsPoint(scene->GetCamera()->ScreenToWorld(mouse->MousePosition())))
-                    {
-                        self->Attack(entity);
-                        break;
-                    }
-                }
+                break;
             }
         }
     }
+
+    PlayerEntity* self;
+    if (activePlayer.TryGetValue(self))
+    {
+        auto direction = GetInputDirection();
+        self->SetMoveDirection(MoveDirectionToVector2(direction) * 200);
+        self->lastDirection = direction;
+
+        if (mouse->RightPressed())
+        {
+            for (auto entity : scene->GetEntities())
+            {
+                if (entity->GetComponent<HealthBarComponent>(false) == nullptr)
+                {
+                    continue;
+                }
+
+                if (entity->Bounds().ContainsPoint(scene->GetCamera()->ScreenToWorld(mouse->MousePosition())))
+                {
+                    self->Attack(entity);
+                    break;
+                }
+
+                self->MoveTo(scene->GetCamera()->ScreenToWorld(mouse->MousePosition()));
+            }
+        }
+    }
+    
 }
 
 void InputService::Render(Renderer* renderer)

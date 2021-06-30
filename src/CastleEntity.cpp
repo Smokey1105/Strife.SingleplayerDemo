@@ -23,12 +23,7 @@ void CastleEntity::OnAdded()
 
     auto rigidBody = AddComponent<RigidBodyComponent>(b2_staticBody);
     rigidBody->CreateBoxCollider(size);
-
-    auto health = AddComponent<HealthBarComponent>();
-    health->offsetFromCenter = -size.YVector() / 2 - Vector2(0, 5);
-    health->maxHealth = 1000;
-    health->health = 1000;
-
+    
     team = AddComponent<TeamComponent>();
 
     auto offset = size / 2 + Vector2(40, 40);

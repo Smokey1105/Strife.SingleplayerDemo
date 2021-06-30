@@ -27,11 +27,22 @@ void MinionSpawner::OnAdded()
 void MinionSpawner::FixedUpdate(float deltaTime)
 {
     spawnTimeout -= deltaTime;
+    cycleTimeout -= deltaTime;
 
     if (spawnTimeout <= 0 && MinionsSpawned <= MaxMinions)
     {
-        spawnTimeout = 30.0f;
-        SpawnMinion();
+        if (cycleTimeout <= 0 && cycleCount < 3)
+        {
+            cycleTimeout = 2.0f;
+            ++cycleCount;
+            SpawnMinion();
+
+            if (cycleCount == 3)
+            {
+                cycleCount = 0;
+                spawnTimeout = 30.0f;
+            }
+        }
     }
 }
 
@@ -71,6 +82,8 @@ void MinionEntity::Start()
 {
     auto bases = scene->GetEntitiesOfType<CastleEntity>();
     for (auto base : bases) if (base->team->teamId != team->teamId) _opponentBase = base;
+    auto towers = scene->GetEntitiesOfType<TowerEntity>();
+    for (auto tower : towers) if (tower->team->teamId != team->teamId) _opponentTower = tower;
     ChangeState(MinionAiState::MoveToOpponentBase);
 }
 
@@ -153,8 +166,13 @@ void MinionEntity::OnEnterState(MinionAiState stateEntered)
     {
     case MinionAiState::MoveToOpponentBase:
     {
+        TowerEntity* towerEntity;
         CastleEntity* castleEntity;
-        if (_opponentBase.TryGetValue(castleEntity))
+        if (_opponentTower.TryGetValue(towerEntity))
+        {
+            _pathFollower->SetTarget(towerEntity->Center() - Vector2(0, 20));
+        }
+        else if (_opponentBase.TryGetValue(castleEntity))
         {
             _pathFollower->SetTarget(castleEntity->Center());
         }
@@ -162,8 +180,8 @@ void MinionEntity::OnEnterState(MinionAiState stateEntered)
         break;
     }
     case MinionAiState::DoNothing:
-        //_pathFollower->Stop(true);
-        //break;
+        _pathFollower->Stop(true);
+        break;
     case MinionAiState::AttackTarget:
         break;
     }
@@ -198,7 +216,7 @@ void MinionEntity::OnUpdateState()
     {
     case MinionAiState::DoNothing:
     {
-        if (_opponentBase.IsValid())
+        if (_opponentBase.IsValid() || _opponentTower.IsValid())
         {
             ChangeState(MinionAiState::MoveToOpponentBase);
         }

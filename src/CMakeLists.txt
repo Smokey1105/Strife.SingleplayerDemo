@@ -9,6 +9,7 @@ add_executable(SingleplayerDemo
 	"InputService.hpp"
 	"InputService.cpp"
 	"CastleEntity.cpp"
+	"CastleEntity.hpp"
 	"GameML.hpp"
     "HealthBarComponent.cpp"
 	"HealthBarComponent.hpp"
@@ -21,7 +22,10 @@ add_executable(SingleplayerDemo
 	"MinionEntity.cpp"
 	"MinionEntity.hpp"
 	"TeamComponent.cpp"
-	"TeamComponent.hpp")
+	"TeamComponent.hpp"
+	"ObstacleComponent.cpp"
+	"ObstacleComponent.hpp")
+
 
 set_property(TARGET SingleplayerDemo PROPERTY CXX_STANDARD 17)
 

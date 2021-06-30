@@ -2,11 +2,12 @@
 
 #include "Scene/BaseEntity.hpp"
 #include "Components/PathFollowerComponent.hpp"
-#include "TeamComponent.hpp"
 
+struct TowerEntity;
 struct CastleEntity;
 struct PlayerEntity;
 struct HealthBarComponent;
+struct TeamComponent;
 
 static constexpr int MaxMinions = 12;
 
@@ -18,9 +19,12 @@ DEFINE_ENTITY(MinionSpawner, "minion-spawner")
     void FixedUpdate(float deltaTime) override;
     void SpawnMinion();
 
-    float spawnTimeout = 0;//30.0f;
+    int cycleCount = 0;
 
-    float reach = 50.0f;
+    float spawnTimeout = 0;//30.0f;
+    float cycleTimeout = 0;//2.0f;
+
+    float reach = 10.0f;
     float engagementRadius = 100.0f;
 
     float fireballTimeout = 0.75f;
@@ -46,13 +50,13 @@ public:
 
     TeamComponent* team = nullptr;
 
-    // Radius of the circle that encapsulates the minion, if an opponent minion/hero is in said circle,
-    // the minion will attack
-    float engagementRadius = 100.0f;
-
     // If the hero runs away from the minion, the minion will follow unless the distance between
     // the two exceeds this reach
-    float reach = 50.0f;
+    float engagementRadius = 100.0f;
+    
+    // Radius of the circle that encapsulates the minion, if an opponent minion/hero is in said circle,
+    // the minion will attack
+    float reach = 10.0f;
 
     float AttackTimeoutLength = 0.75; // Essentially limits how often a minion can attack
 
@@ -76,6 +80,7 @@ private:
     RigidBodyComponent* _rb = nullptr;
 
     HealthBarComponent* _healthBar = nullptr;
+    EntityReference<TowerEntity> _opponentTower = EntityReference<TowerEntity>::Invalid();
     EntityReference<CastleEntity> _opponentBase = EntityReference<CastleEntity>::Invalid();
     FixedSizeVector<EntityReference<Entity>, 16> _targets;
     b2Fixture* _engagementCircle;
