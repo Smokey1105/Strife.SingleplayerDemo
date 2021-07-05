@@ -14,7 +14,7 @@ struct Game : IGame
     void ConfigureGame(GameConfig& config) override
     {
         config
-            .SetDefaultScene("demo"_sid)
+            .SetDefaultScene("erebor"_sid)
             .SetWindowCaption("Strife Singleplayer Demo")
             .SetGameName("Strife Singleplayer Demo")
             .ExecuteUserConfig("user.cfg")
@@ -61,7 +61,7 @@ struct Game : IGame
             neuralNetworkManager->SetSensorObjectDefinition(sensorDefinition);
         }
 
-        engine->StartSinglePlayerGame("demo");
+        engine->StartSinglePlayerGame("erebor");
     }
 
     std::string initialConsoleCmd;

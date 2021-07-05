@@ -19,12 +19,12 @@ void InputService::ReceiveEvent(const IEntityEvent& ev)
 {
     if (ev.Is<SceneLoadedEvent>())
     {
-        CastleEntity* castle1 = scene->CreateEntity<CastleEntity>(Vector2(327.5, 1040));
-        CastleEntity* castle2 = scene->CreateEntity<CastleEntity>(Vector2(3832.5, 1040));
-        TowerEntity* tower1 = scene->CreateEntity<TowerEntity>(Vector2(1260, 957));
-        TowerEntity* tower2 = scene->CreateEntity<TowerEntity>(Vector2(2900, 957));
-        MinionSpawner* minionSpawner1 = scene->CreateEntity<MinionSpawner>(Vector2(520, 1123));
-        MinionSpawner* minionSpawner2 = scene->CreateEntity<MinionSpawner>(Vector2(3640, 1123));
+        CastleEntity* castle1 = scene->CreateEntity<CastleEntity>(Vector2(327.5, 2080));
+        CastleEntity* castle2 = scene->CreateEntity<CastleEntity>(Vector2(3832.5, 2080));
+        TowerEntity* tower1 = scene->CreateEntity<TowerEntity>(Vector2(1260, 1997));
+        TowerEntity* tower2 = scene->CreateEntity<TowerEntity>(Vector2(2900, 1997));
+        MinionSpawner* minionSpawner1 = scene->CreateEntity<MinionSpawner>(Vector2(520, 2163));
+        MinionSpawner* minionSpawner2 = scene->CreateEntity<MinionSpawner>(Vector2(3640, 2163));
 
         castle1->tower = tower1;
         castle1->minionSpawner = minionSpawner1;
@@ -35,9 +35,10 @@ void InputService::ReceiveEvent(const IEntityEvent& ev)
 
         auto spawnPoints = scene->GetEntitiesOfType<CastleEntity>();
 
-        for (int i = 0; i < spawnPoints.size(); ++i)
+        int id = 0;
+        for (auto i = spawnPoints.begin(); i != spawnPoints.end(); ++i)
         {
-            SpawnPlayer(spawnPoints[i], i);
+            SpawnPlayer(*i, id++);
         }     
     }
     if (ev.Is<UpdateEvent>())
@@ -74,11 +75,11 @@ void InputService::HandleInput()
                 PlayerEntity* oldPlayer;
                 if (activePlayer.TryGetValue(oldPlayer))
                 {
-                    oldPlayer->GetComponent<PlayerEntity::NeuralNetwork>()->mode = NeuralNetworkMode::Deciding;
+                    //oldPlayer->GetComponent<PlayerEntity::NeuralNetwork>()->mode = NeuralNetworkMode::Deciding;
                 }
 
                 activePlayer = player;
-                player->GetComponent<PlayerEntity::NeuralNetwork>()->mode = NeuralNetworkMode::CollectingSamples;
+                //player->GetComponent<PlayerEntity::NeuralNetwork>()->mode = NeuralNetworkMode::CollectingSamples;
 
                 scene->GetCameraFollower()->FollowEntity(player);
 

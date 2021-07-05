@@ -74,7 +74,6 @@ void MinionEntity::OnAdded()
 
     _healthBar->offsetFromCenter = -Dimensions().YVector() / 2 - Vector2(0, 5);
     _pathFollower->speed = 50;
-
     _engagementCircle = _rb->CreateCircleCollider(engagementRadius, true);
 }
 

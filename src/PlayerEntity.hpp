@@ -32,8 +32,6 @@ enum class MoveDirection
 
 DEFINE_ENTITY(PlayerEntity, "player")
 {
-    using NeuralNetwork = NeuralNetworkComponent<PlayerNetwork>;
-
     void Attack(Entity* entity);
     void SetMoveDirection(Vector2 direction);
     void MoveTo(Vector2 position);
@@ -49,6 +47,7 @@ DEFINE_ENTITY(PlayerEntity, "player")
     PathFollowerComponent* pathFollower;
     HealthBarComponent* health;
     TeamComponent* team;
+    GridSensorComponent<40, 40>* gridSensor;
 
     EntityReference<Entity> attackTarget;
     PlayerState state = PlayerState::None;
