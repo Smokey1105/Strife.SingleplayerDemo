@@ -66,7 +66,7 @@ void PlayerEntity::OnAdded()
     health->offsetFromCenter = Vector2(0, -20);
 
     rigidBody = AddComponent<RigidBodyComponent>(b2_dynamicBody);
-    pathFollower = AddComponent<PathFollowerComponent>(rigidBody);
+    //pathFollower = AddComponent<PathFollowerComponent>(rigidBody);
 
     team = AddComponent<TeamComponent>();
 
@@ -158,7 +158,7 @@ void PlayerEntity::FixedUpdate(float deltaTime)
                     attackCoolDown = 1;
                 }
 
-                pathFollower->Stop(true);
+                //pathFollower->Stop(true);
                 return;
             }
         }
@@ -187,6 +187,6 @@ void PlayerEntity::SetMoveDirection(Vector2 direction)
 
 void PlayerEntity::MoveTo(Vector2 position)
 {
-    pathFollower->SetTarget(position);
+    //pathFollower->SetTarget(position);
     state = PlayerState::Moving;
 }

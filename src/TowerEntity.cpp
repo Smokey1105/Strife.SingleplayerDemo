@@ -61,18 +61,13 @@ void TowerEntity::Update(float deltaTime)
 
 void TowerEntity::OnDestroyed()
 {
-    for (auto player : scene->GetEntitiesOfType<PlayerEntity>())
+    for (auto base : scene->GetEntitiesOfType<CastleEntity>())
     {
-        if (player->playerId == playerId)
+        if (base->team->teamId == team->teamId)
         {
-            player->Destroy();
+            base->SendEvent(TowerDestroyedEvent());
         }
     }
-
-    auto castleHealth = castle->AddComponent<HealthBarComponent>();
-    castleHealth->offsetFromCenter = -Vector2(67 * 5, 55 * 5).YVector() / 2 - Vector2(0, 5);
-    castleHealth->maxHealth = 1000;
-    castleHealth->health = 1000;
 }
 
 void TowerEntity::ReceiveEvent(const IEntityEvent& ev)

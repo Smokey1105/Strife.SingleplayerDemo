@@ -30,8 +30,6 @@ void InputService::ReceiveEvent(const IEntityEvent& ev)
         castle1->minionSpawner = minionSpawner1;
         castle2->tower = tower2;
         castle2->minionSpawner = minionSpawner2;
-        tower1->castle = castle1;
-        tower2->castle = castle2;
 
         auto spawnPoints = scene->GetEntitiesOfType<CastleEntity>();
 

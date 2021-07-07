@@ -81,4 +81,12 @@ void CastleEntity::ReceiveEvent(const IEntityEvent& ev)
     {
         Destroy();
     }
+
+    if (ev.Is<TowerDestroyedEvent>())
+    {
+        auto hb = AddComponent<HealthBarComponent>();
+        hb->offsetFromCenter = -Vector2(67 * 5, 55 * 5).YVector() / 2 - Vector2(0, 5);
+        hb->maxHealth = 1000;
+        hb->health = 1000;
+    }
 }

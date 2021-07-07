@@ -3,6 +3,9 @@
 #include "Engine.hpp"
 #include "InputService.hpp"
 #include "PlayerEntity.hpp"
+#include "TowerEntity.hpp"
+#include "CastleEntity.hpp"
+#include "MinionEntity.hpp"
 #include "PlayerNeuralNetworkService.hpp"
 #include "Scene/IGame.hpp"
 #include "Scene/Scene.hpp"
@@ -57,6 +60,9 @@ struct Game : IGame
             SensorObjectDefinition sensorDefinition;
             sensorDefinition.Add<PlayerEntity>(1).SetColor(Color::Red()).SetPriority(1);
             sensorDefinition.Add<TilemapEntity>(2).SetColor(Color::Gray()).SetPriority(0);
+            sensorDefinition.Add<CastleEntity>(3).SetColor(Color::Blue()).SetPriority(0.7);
+            sensorDefinition.Add<TowerEntity>(4).SetColor(Color::Orange()).SetPriority(0.9);
+            sensorDefinition.Add<MinionEntity>(5).SetColor(Color::Green()).SetPriority(0.8);
 
             neuralNetworkManager->SetSensorObjectDefinition(sensorDefinition);
         }

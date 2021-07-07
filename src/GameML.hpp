@@ -35,18 +35,20 @@ struct PlayerNetwork : StrifeML::NeuralNetwork<Observation, TrainingLabel>
     torch::nn::Embedding embedding{ nullptr };
     torch::nn::Conv2d conv1{ nullptr }, conv2{ nullptr }, conv3{ nullptr }, conv4{ nullptr };
     torch::nn::Linear dense{ nullptr };
+    torch::Device device = torch::Device(torch::kCUDA);
     std::shared_ptr<torch::optim::Adam> optimizer;
 
     PlayerNetwork()
 		: NeuralNetwork<Observation, TrainingLabel>(1)
     {
-	    embedding = module->register_module("embedding", torch::nn::Embedding(3, 4));
-	    conv1 = module->register_module("conv1", torch::nn::Conv2d(4, 8, 5));
-	    conv2 = module->register_module("conv2", torch::nn::Conv2d(8, 16, 3));
-	    conv3 = module->register_module("conv3", torch::nn::Conv2d(16, 32, 3));
-	    conv4 = module->register_module("conv4", torch::nn::Conv2d(32, 64, 3));
-	    dense = module->register_module("dense", torch::nn::Linear(64, 9));
-	    optimizer = std::make_shared<torch::optim::Adam>(module->parameters(), 1e-3);
+	    embedding = module->register_module("embedding", torch::nn::Embedding(6, 8));
+	    conv1 = module->register_module("conv1", torch::nn::Conv2d(8, 16, 5));
+	    conv2 = module->register_module("conv2", torch::nn::Conv2d(16, 32, 3));
+	    conv3 = module->register_module("conv3", torch::nn::Conv2d(32, 64, 3));
+	    conv4 = module->register_module("conv4", torch::nn::Conv2d(64, 128, 3));
+	    dense = module->register_module("dense", torch::nn::Linear(128, 9));
+        optimizer = std::make_shared<torch::optim::Adam>(module->parameters(), 1e-3);
+        module->to(device);
     }
 
     void TrainBatch(Grid<const SampleType> input, StrifeML::TrainingBatchResult& outResult) override
@@ -55,10 +57,10 @@ struct PlayerNetwork : StrifeML::NeuralNetwork<Observation, TrainingLabel>
         optimizer->zero_grad();
 
         //Log("Pack spatial\n");
-        torch::Tensor spatialInput = PackIntoTensor(input, [=](auto& sample) { return sample.input.grid; });
+        torch::Tensor spatialInput = PackIntoTensor(input, [=](auto& sample) { return sample.input.grid; }).to(device);
 
         //Log("Pack labels\n");
-        torch::Tensor labels = PackIntoTensor(input, [=](auto& sample) { return static_cast<int64_t>(sample.output.actionIndex); }).squeeze();
+        torch::Tensor labels = PackIntoTensor(input, [=](auto& sample) { return static_cast<int64_t>(sample.output.actionIndex); }).to(device).squeeze();
 
         //Log("Predicting...\n");
         torch::Tensor prediction = Forward(spatialInput).squeeze();
@@ -82,6 +84,8 @@ struct PlayerNetwork : StrifeML::NeuralNetwork<Observation, TrainingLabel>
 
     void MakeDecision(Grid<const InputType> input, gsl::span<OutputType> output) override
     {
+        torch::Device cpu(torch::kCPU);
+        module->to(cpu);
         auto spatialInput = PackIntoTensor(input, [=](auto& sample) { return sample.grid; });
         torch::Tensor action = Forward(spatialInput).squeeze();
 
@@ -136,7 +140,7 @@ struct PlayerNetwork : StrifeML::NeuralNetwork<Observation, TrainingLabel>
         }
         else
         {
-            x = x.view({batchSize, 64});
+            x = x.view({batchSize, 128});
         }
 
         x = dense->forward(x);

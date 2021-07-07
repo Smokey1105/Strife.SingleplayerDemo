@@ -18,6 +18,13 @@ struct TowerEntityState
     EntityReference<Entity> newTarget = EntityReference<Entity>::Invalid();
 };
 
+DEFINE_EVENT(TowerDestroyedEvent)
+{
+    TowerDestroyedEvent()
+    {
+    }
+};
+
 DEFINE_ENTITY(TowerEntity, "tower")
 {
     void OnAdded() override;
@@ -35,7 +42,6 @@ DEFINE_ENTITY(TowerEntity, "tower")
 
     TeamComponent* team;
     ObstacleComponent* obstacle;
-    CastleEntity* castle;
 
 private:
     float _colorChangeTime = 0;

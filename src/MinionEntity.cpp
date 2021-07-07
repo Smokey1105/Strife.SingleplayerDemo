@@ -12,8 +12,6 @@
 #include "MinionEntity.hpp"
 #include "TowerEntity.hpp"
 
-static int MinionsSpawned = 0;
-
 void MinionSpawner::DoSerialize(EntitySerializer& serializer)
 {
 
@@ -27,22 +25,20 @@ void MinionSpawner::OnAdded()
 void MinionSpawner::FixedUpdate(float deltaTime)
 {
     spawnTimeout -= deltaTime;
-    cycleTimeout -= deltaTime;
 
-    if (spawnTimeout <= 0 && MinionsSpawned <= MaxMinions)
+    if (spawnTimeout <= 0 && minionCount < maxMinions)
     {
-        if (cycleTimeout <= 0 && cycleCount < 3)
-        {
-            cycleTimeout = 2.0f;
-            ++cycleCount;
-            SpawnMinion();
+        minionCount++;
+        SpawnMinion();
+        spawnTimeout = 2.0f;
+    }
+}
 
-            if (cycleCount == 3)
-            {
-                cycleCount = 0;
-                spawnTimeout = 30.0f;
-            }
-        }
+void MinionSpawner::ReceiveEvent(const IEntityEvent& ev)
+{
+    if (ev.Is<MinionDestroyedEvent>())
+    {
+        SpawnMinion();
     }
 }
 
@@ -55,7 +51,6 @@ void MinionSpawner::SpawnMinion()
     minion->AttackTimeoutLength = fireballTimeout;
     minion->engagementRadius = engagementRadius;
 
-    ++MinionsSpawned;
     minion->Start();
 }
 
@@ -75,6 +70,17 @@ void MinionEntity::OnAdded()
     _healthBar->offsetFromCenter = -Dimensions().YVector() / 2 - Vector2(0, 5);
     _pathFollower->speed = 50;
     _engagementCircle = _rb->CreateCircleCollider(engagementRadius, true);
+}
+
+void MinionEntity::OnDestroyed()
+{
+    for (auto spawner : scene->GetEntitiesOfType<MinionSpawner>())
+    {
+        if (spawner->team->teamId == team->teamId)
+        {
+            spawner->SendEvent(MinionDestroyedEvent());
+        }
+    }
 }
 
 void MinionEntity::Start()
@@ -127,7 +133,6 @@ void MinionEntity::ReceiveEvent(const IEntityEvent& ev)
     if (auto event = ev.Is<OutOfHealthEvent>())
     {
         // TODO: Remove this and replace with a more robust system
-        --MinionsSpawned;
 
         // TODO: Award EXP and "Gold" (currency equivalent) here
         Destroy();

@@ -9,22 +9,21 @@ struct PlayerEntity;
 struct HealthBarComponent;
 struct TeamComponent;
 
-static constexpr int MaxMinions = 12;
-
 DEFINE_ENTITY(MinionSpawner, "minion-spawner")
 {
     void DoSerialize(EntitySerializer & serializer) override;
 
     void OnAdded() override;
     void FixedUpdate(float deltaTime) override;
+    void ReceiveEvent(const IEntityEvent & ev) override;
     void SpawnMinion();
 
-    int cycleCount = 0;
+    const int maxMinions = 6;
+    int minionCount = 0;
 
-    float spawnTimeout = 0;//30.0f;
-    float cycleTimeout = 0;//2.0f;
+    float spawnTimeout = 0;//2.0f;
 
-    float reach = 10.0f;
+    float reach = 50.0f;
     float engagementRadius = 100.0f;
 
     float fireballTimeout = 0.75f;
@@ -38,11 +37,18 @@ enum class MinionAiState
     AttackTarget,
 };
 
+DEFINE_EVENT(MinionDestroyedEvent) {
+    MinionDestroyedEvent()
+    {
+
+    }
+};
+
 DEFINE_ENTITY(MinionEntity, "minion")
 {
 public:
     void OnAdded() override;
-
+    void OnDestroyed() override;
     void Render(Renderer * renderer) override;
     void FixedUpdate(float deltaTime) override;
     void ReceiveEvent(const IEntityEvent & ev) override;
@@ -56,7 +62,7 @@ public:
     
     // Radius of the circle that encapsulates the minion, if an opponent minion/hero is in said circle,
     // the minion will attack
-    float reach = 10.0f;
+    float reach = 50.0f;
 
     float AttackTimeoutLength = 0.75; // Essentially limits how often a minion can attack
 
