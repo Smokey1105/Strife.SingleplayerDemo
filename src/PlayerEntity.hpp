@@ -56,6 +56,7 @@ DEFINE_ENTITY(PlayerEntity, "player")
     MoveDirection lastDirection = MoveDirection::None;
 
     void Die(const OutOfHealthEvent* outOfHealth);
+    void GetObservation(Observation& input);
 };
 
 Vector2 MoveDirectionToVector2(MoveDirection direction);

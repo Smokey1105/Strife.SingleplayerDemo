@@ -8,146 +8,69 @@
 
 #include "Tools/MetricsManager.hpp"
 
+struct PlayerObservation : StrifeML::ISerializable
+{
+    void Serialize(StrifeML::ObjectSerializer& serializer) override;
+
+    Vector2 position;
+    Vector2 velocity;
+    float health;
+};
+
+struct MinionObservation : StrifeML::ISerializable
+{
+    void Serialize(StrifeML::ObjectSerializer& serializer) override;
+
+    Vector2 position;
+    Vector2 velocity;
+    float health;
+};
+
+struct BuildingObservation : StrifeML::ISerializable
+{
+    void Serialize(StrifeML::ObjectSerializer& serializer) override;
+
+    Vector2 position;
+    float health;
+};
+
 struct Observation : StrifeML::ISerializable
 {
-    void Serialize(StrifeML::ObjectSerializer& serializer) override
-    {
-        serializer
-            .Add(grid, "grid");
-    }
+    void Serialize(StrifeML::ObjectSerializer& serializer) override;
 
-    GridSensorOutput<40, 40> grid;
+    //std::vector<PlayerObservation> players;
+    //std::vector<MinionObservation> minions;
+    //std::vector<BuildingObservation> buildings;
+
+    //temp bug fix:
+    PlayerObservation nearestPlayer;
+    MinionObservation nearestMinion;
+    BuildingObservation nearestBuilding;
 };
 
 struct TrainingLabel : StrifeML::ISerializable
 {
-    void Serialize(StrifeML::ObjectSerializer& serializer) override
-    {
-        serializer
-            .Add(actionIndex, "action");
-    }
+    void Serialize(StrifeML::ObjectSerializer& serializer) override;
 
     int actionIndex;
 };
 
 struct PlayerNetwork : StrifeML::NeuralNetwork<Observation, TrainingLabel>
 {
-    torch::nn::Embedding embedding{ nullptr };
-    torch::nn::Conv2d conv1{ nullptr }, conv2{ nullptr }, conv3{ nullptr }, conv4{ nullptr };
-    torch::nn::Linear dense{ nullptr };
+    torch::nn::Linear playerEmbed1{ nullptr }, playerEmbed2{ nullptr }, playerEmbed3{ nullptr };
+    torch::nn::Linear minionEmbed1{ nullptr }, minionEmbed2{ nullptr }, minionEmbed3{ nullptr };
+    torch::nn::Linear buildingEmbed1{ nullptr }, buildingEmbed2{ nullptr }, buildingEmbed3{ nullptr };
+
+    torch::nn::Linear dense1{ nullptr }, dense2{ nullptr }, dense3{ nullptr };
     torch::Device device = torch::Device(torch::kCUDA);
     std::shared_ptr<torch::optim::Adam> optimizer;
 
-    PlayerNetwork()
-		: NeuralNetwork<Observation, TrainingLabel>(1)
-    {
-	    embedding = module->register_module("embedding", torch::nn::Embedding(6, 8));
-	    conv1 = module->register_module("conv1", torch::nn::Conv2d(8, 16, 5));
-	    conv2 = module->register_module("conv2", torch::nn::Conv2d(16, 32, 3));
-	    conv3 = module->register_module("conv3", torch::nn::Conv2d(32, 64, 3));
-	    conv4 = module->register_module("conv4", torch::nn::Conv2d(64, 128, 3));
-	    dense = module->register_module("dense", torch::nn::Linear(128, 9));
-        optimizer = std::make_shared<torch::optim::Adam>(module->parameters(), 1e-3);
-        module->to(device);
-    }
+    PlayerNetwork();
 
-    void TrainBatch(Grid<const SampleType> input, StrifeML::TrainingBatchResult& outResult) override
-    {
-        //Log("Train batch start\n");
-        optimizer->zero_grad();
-
-        //Log("Pack spatial\n");
-        torch::Tensor spatialInput = PackIntoTensor(input, [=](auto& sample) { return sample.input.grid; }).to(device);
-
-        //Log("Pack labels\n");
-        torch::Tensor labels = PackIntoTensor(input, [=](auto& sample) { return static_cast<int64_t>(sample.output.actionIndex); }).to(device).squeeze();
-
-        //Log("Predicting...\n");
-        torch::Tensor prediction = Forward(spatialInput).squeeze();
-
-        //std::cout << prediction.sizes() << std::endl;
-        //std::cout << labels << std::endl;
-
-        //Log("Calculate loss\n");
-        torch::Tensor loss = torch::nn::functional::nll_loss(prediction, labels);
-
-        //Log("Call backward\n");
-        loss.backward();
-
-        //Log("Call optimizer step\n");
-        optimizer->step();
-
-        outResult.loss = loss.item<float>();
-
-        //Log("Train batch end\n");
-    }
-
-    void MakeDecision(Grid<const InputType> input, gsl::span<OutputType> output) override
-    {
-        torch::Device cpu(torch::kCPU);
-        module->to(cpu);
-        auto spatialInput = PackIntoTensor(input, [=](auto& sample) { return sample.grid; });
-        torch::Tensor action = Forward(spatialInput).squeeze();
-
-    	for (int i = 0; i < output.size(); ++i)
-        {
-    		torch::Tensor index = std::get<1>(torch::max(action.index({i}), 0));
-	        output[i].actionIndex = *index.data_ptr<int64_t>();
-        }
-    }
-
-    torch::Tensor Forward(const torch::Tensor& spatialInput)
-    {
-        // spatialInput's shape: B x S x Rows x Cols
-        auto batchSize = spatialInput.size(0);
-        auto sequenceLength = spatialInput.size(1);
-        auto height = spatialInput.size(2);
-        auto width = spatialInput.size(3);
-
-        torch::Tensor x;
-
-        if (sequenceLength > 1)
-        {
-            x = spatialInput.view({ -1, height, width });
-        }
-        else
-        {
-            x = squeeze(spatialInput, 1);
-        }
-
-        x = embedding->forward(x);     // N x 80 x 80 x 4
-        x = x.permute({ 0, 3, 1, 2 }); // N x 4 x 80 x 80
-
-
-        x = leaky_relu(conv1->forward(x)); // N x 8 x 76 x 76
-        x = dropout(x, 0.5, module->is_training());
-        x = max_pool2d(x, { 2, 2 }); // N x 8 x 38 x 38
-
-        x = leaky_relu(conv2->forward(x)); // N x 16 x 36 x 36
-        x = dropout(x, 0.5, module->is_training());
-        x = max_pool2d(x, { 2, 2 }); // N x 16 x 18 x 18
-
-        x = leaky_relu(conv3->forward(x)); // N x 32 x 16 x 16
-        x = dropout(x, 0.5, module->is_training());
-        x = max_pool2d(x, { 2, 2 }); // N x 32 x 8 x 8
-
-        x = leaky_relu(conv4->forward(x)); // N x 64 x 6 x 6
-        x = dropout(x, 0.5, module->is_training());
-
-        if (sequenceLength > 1)
-        {
-            x = x.view({sequenceLength, batchSize, 128});
-        }
-        else
-        {
-            x = x.view({batchSize, 128});
-        }
-
-        x = dense->forward(x);
-        x = log_softmax(x, 1);
-
-        return x;
-    }
+    void TrainBatch(Grid<const SampleType> input, StrifeML::TrainingBatchResult& outResult) override;
+    void MakeDecision(Grid<const InputType> input, gsl::span<OutputType> output) override;
+    torch::Tensor PlayerNetwork::PartialForward(const torch::Tensor& input, torch::nn::Linear layer1, torch::nn::Linear layer2, torch::nn::Linear layer3);
+    torch::Tensor Forward(const torch::Tensor& playerInput, const torch::Tensor& minionInput, const torch::Tensor& buildingInput);
 };
 
 struct PlayerDecider : StrifeML::Decider<PlayerNetwork>
@@ -157,43 +80,12 @@ struct PlayerDecider : StrifeML::Decider<PlayerNetwork>
 
 struct PlayerTrainer : StrifeML::Trainer<PlayerNetwork>
 {
-    PlayerTrainer(Metric* lossMetric)
-        : Trainer<PlayerNetwork>(32, 10000, 1),
-          lossMetric(lossMetric)
-    {
-        LogStartup();
-        samples = sampleRepository.CreateSampleSet("player-samples");
-        samplesByActionType = samples
-            ->CreateGroupedView<int>()
-            ->GroupBy([=](const SampleType& sample) { return sample.output.actionIndex; });
-    }
+    PlayerTrainer(Metric* lossMetric);
 
-    void LogStartup() const
-    {
-        std::cout << "Trainer starting" << std::endl;
-
-        std::cout << std::boolalpha;
-        std::cout << "CUDA is available: " << torch::cuda::is_available() << std::endl;
-
-        std::cout << torch::show_config() << std::endl;
-        std::cout << "Torch Inter-Op Threads: " << torch::get_num_interop_threads() << std::endl;
-        std::cout << "Torch Intra-Op Threads: " << torch::get_num_threads() << std::endl;
-    }
-
-    void ReceiveSample(const SampleType& sample) override
-    {
-        samples->AddSample(sample);
-    }
-
-    bool TrySelectSequenceSamples(gsl::span<SampleType> outSequence) override
-    {
-        return samplesByActionType->TryPickRandomSequence(outSequence);
-    }
-
-    void OnTrainingComplete(const StrifeML::TrainingBatchResult& result) override
-    {
-        lossMetric->Add(result.loss);
-    }
+    void LogStartup() const;
+    void ReceiveSample(const SampleType& sample) override;
+    bool TrySelectSequenceSamples(gsl::span<SampleType> outSequence) override;
+    void OnTrainingComplete(const StrifeML::TrainingBatchResult& result) override;
 
     StrifeML::SampleSet<SampleType>* samples;
     StrifeML::GroupedSampleView<SampleType, int>* samplesByActionType;

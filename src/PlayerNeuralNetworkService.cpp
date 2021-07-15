@@ -11,7 +11,7 @@ PlayerNeuralNetworkService::PlayerNeuralNetworkService(StrifeML::NetworkContext<
 
 void PlayerNeuralNetworkService::CollectInput(PlayerEntity* entity, InputType& input)
 {
-	entity->gridSensor->Read(input.grid);
+	entity->GetObservation(input);
 }
 
 void PlayerNeuralNetworkService::ReceiveDecision(PlayerEntity* entity, OutputType& output)

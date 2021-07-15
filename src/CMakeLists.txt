@@ -24,7 +24,7 @@ add_executable(SingleplayerDemo
 	"TeamComponent.cpp"
 	"TeamComponent.hpp"
 	"ObstacleComponent.cpp"
-	"ObstacleComponent.hpp")
+	"ObstacleComponent.hpp" "GameML.cpp")
 
 
 set_property(TARGET SingleplayerDemo PROPERTY CXX_STANDARD 17)

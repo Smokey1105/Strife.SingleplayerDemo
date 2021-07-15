@@ -190,3 +190,147 @@ void PlayerEntity::MoveTo(Vector2 position)
     //pathFollower->SetTarget(position);
     state = PlayerState::Moving;
 }
+
+void PlayerEntity::GetObservation(Observation& input)
+{
+    //temp fix:
+    PlayerEntity* closestPlayer;
+    float minDistance;
+    for (auto player : scene->GetEntitiesOfType<PlayerEntity>())
+    {
+        auto distance = (player->Center() - Center()).Length();
+        if (closestPlayer == nullptr || distance < minDistance)
+        {
+            closestPlayer = player;
+            minDistance = distance;
+        }
+    }
+
+    PlayerObservation playerObs;
+    playerObs.position = closestPlayer->Center() - Center();
+    playerObs.velocity = closestPlayer->rigidBody->GetVelocity();
+    playerObs.health = closestPlayer->health->health;
+
+    MinionEntity* closestMinion;
+    for (auto minion : scene->GetEntitiesOfType<MinionEntity>())
+    {
+        auto distance = (minion->Center() - Center()).Length();
+        if (closestMinion == nullptr || distance < minDistance)
+        {
+            closestMinion = minion;
+            minDistance = distance;
+        }
+    }
+
+    MinionObservation minionObs;
+    minionObs.position = closestMinion->Center() - Center();
+
+    RigidBodyComponent* rb;
+    if (closestMinion->TryGetComponent(rb))
+    {
+        minionObs.velocity = rb->GetVelocity();
+    }
+
+    HealthBarComponent* minionHealth;
+    if (closestMinion->TryGetComponent(minionHealth))
+    {
+        minionObs.health = minionHealth->health;
+    }
+
+    CastleEntity* closestCastle;
+    float minCastleDistance;
+    for (auto castle : scene->GetEntitiesOfType<CastleEntity>())
+    {
+        auto distance = (castle->Center() - Center()).Length();
+        if (closestCastle == nullptr || distance < minCastleDistance)
+        {
+            closestCastle = castle;
+            minCastleDistance = distance;
+        }
+    }
+
+    TowerEntity* closestTower;
+    float minTowerDistance;
+    for (auto tower : scene->GetEntitiesOfType<TowerEntity>())
+    {
+        auto distance = (tower->Center() - Center()).Length();
+        if (closestTower == nullptr || distance < minTowerDistance)
+        {
+            closestTower = tower;
+            minTowerDistance = distance;
+        }
+    }
+
+    Entity* closestBuilding = closestTower;
+    if (minCastleDistance < minTowerDistance)
+    {
+        closestBuilding = closestCastle;
+    }
+
+    BuildingObservation buildingObs;
+    buildingObs.position = closestBuilding->Center() - Center();
+
+    HealthBarComponent* buildingHealth;
+    if (closestBuilding->TryGetComponent(buildingHealth))
+    {
+        buildingObs.health = buildingHealth->health;
+    }
+
+    /*for (auto player : scene->GetEntitiesOfType<PlayerEntity>()) 
+    {
+        PlayerObservation playerObs;
+        playerObs.position = player->Center() - Center();
+        playerObs.velocity = player->rigidBody->GetVelocity();
+        playerObs.health = player->health->health;
+
+        input.players.push_back(playerObs);
+    }
+
+    for (auto minion : scene->GetEntitiesOfType<MinionEntity>())
+    {
+        MinionObservation minionObs;
+        minionObs.position = minion->Center() - Center();
+
+        RigidBodyComponent* rb;
+        if (minion->TryGetComponent(rb))
+        {
+            minionObs.velocity = rb->GetVelocity();
+        }
+
+        HealthBarComponent* health;
+        if (minion->TryGetComponent(health))
+        {
+            minionObs.health = health->health;
+        }
+        
+        input.minions.push_back(minionObs);
+    }
+
+    for (auto tower : scene->GetEntitiesOfType<TowerEntity>())
+    {
+        BuildingObservation buildingObs;
+        buildingObs.position = tower->Center() - Center();
+        
+        HealthBarComponent* health;
+        if (tower->TryGetComponent(health))
+        {
+            buildingObs.health = health->health;
+        }
+
+        input.buildings.push_back(buildingObs);
+    }
+
+    for (auto castle : scene->GetEntitiesOfType<CastleEntity>())
+    {
+        BuildingObservation buildingObs;
+        buildingObs.position = castle->Center() - Center();
+
+        HealthBarComponent* health;
+        if (castle->TryGetComponent(health))
+        {
+            buildingObs.health = health->health;
+        }
+
+        input.buildings.push_back(buildingObs);
+    }*/
+}
