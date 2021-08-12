@@ -28,10 +28,8 @@ void CastleEntity::OnAdded()
 
     auto offset = size / 2 + Vector2(40, 40);
 
-    _spawnSlots[0] = Center() + offset.XVector();
-    _spawnSlots[1] = Center() - offset.XVector();
-    _spawnSlots[2] = Center() + offset.YVector();
-    _spawnSlots[3] = Center() - offset.YVector();
+    _spawnSlots[0] = Center() + offset.YVector();
+    _spawnSlots[1] = Center() - offset.YVector();
 
     _light = AddComponent<LightComponent<PointLight>>();
     _light->position = Center();
@@ -41,6 +39,20 @@ void CastleEntity::OnAdded()
 
 void CastleEntity::Update(float deltaTime)
 {
+    int teamCount = 0;
+    for (auto player : scene->GetEntitiesOfType<PlayerEntity>())
+    {
+        if (player->team->teamId == team->teamId)
+        {
+            teamCount++;
+        }
+    }
+
+    if (teamCount < 2)
+    {
+        SpawnPlayer();
+    }
+
     _light->color = playerId == 0
         ? Color::Green()
         : Color::White();
@@ -49,7 +61,7 @@ void CastleEntity::Update(float deltaTime)
 void CastleEntity::SpawnPlayer()
 {
     auto position = _spawnSlots[_nextSpawnSlotId];
-    _nextSpawnSlotId = (_nextSpawnSlotId + 1) % 4;
+    _nextSpawnSlotId = (_nextSpawnSlotId + 1) % 2;
 
     auto player = scene->CreateEntity<PlayerEntity>({ position });
     player->playerId = playerId;

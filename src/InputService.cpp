@@ -89,9 +89,9 @@ void InputService::HandleInput()
     PlayerEntity* self;
     if (activePlayer.TryGetValue(self))
     {
-        auto direction = GetInputDirection();
+        /*auto direction = GetInputDirection();
         self->SetMoveDirection(MoveDirectionToVector2(direction) * 200);
-        self->lastDirection = direction;
+        self->lastDirection = direction;*/
 
         if (mouse->RightPressed())
         {
@@ -111,6 +111,10 @@ void InputService::HandleInput()
                 self->MoveTo(scene->GetCamera()->ScreenToWorld(mouse->MousePosition()));
             }
         }
+    }
+    else
+    {
+        scene->GetCameraFollower()->FollowMouse();
     }
     
 }

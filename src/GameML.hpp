@@ -38,14 +38,14 @@ struct Observation : StrifeML::ISerializable
 {
     void Serialize(StrifeML::ObjectSerializer& serializer) override;
 
-    //std::vector<PlayerObservation> players;
-    //std::vector<MinionObservation> minions;
-    //std::vector<BuildingObservation> buildings;
+    std::vector<PlayerObservation> players;
+    std::vector<MinionObservation> minions;
+    std::vector<BuildingObservation> buildings;
 
     //temp bug fix:
-    PlayerObservation nearestPlayer;
+    /*PlayerObservation nearestPlayer;
     MinionObservation nearestMinion;
-    BuildingObservation nearestBuilding;
+    BuildingObservation nearestBuilding;*/
 };
 
 struct TrainingLabel : StrifeML::ISerializable
@@ -53,6 +53,8 @@ struct TrainingLabel : StrifeML::ISerializable
     void Serialize(StrifeML::ObjectSerializer& serializer) override;
 
     int actionIndex;
+    Vector2 moveCoord;
+    int entityChoice;
 };
 
 struct PlayerNetwork : StrifeML::NeuralNetwork<Observation, TrainingLabel>
@@ -61,7 +63,9 @@ struct PlayerNetwork : StrifeML::NeuralNetwork<Observation, TrainingLabel>
     torch::nn::Linear minionEmbed1{ nullptr }, minionEmbed2{ nullptr }, minionEmbed3{ nullptr };
     torch::nn::Linear buildingEmbed1{ nullptr }, buildingEmbed2{ nullptr }, buildingEmbed3{ nullptr };
 
-    torch::nn::Linear dense1{ nullptr }, dense2{ nullptr }, dense3{ nullptr };
+    torch::nn::Linear action1{ nullptr }, action2{ nullptr }, action3{ nullptr };
+    torch::nn::Linear move1{ nullptr }, move2{ nullptr }, move3{ nullptr };
+    torch::nn::Linear entity1{ nullptr }, entity2{ nullptr }, entity3{ nullptr };
     torch::Device device = torch::Device(torch::kCUDA);
     std::shared_ptr<torch::optim::Adam> optimizer;
 
@@ -70,7 +74,7 @@ struct PlayerNetwork : StrifeML::NeuralNetwork<Observation, TrainingLabel>
     void TrainBatch(Grid<const SampleType> input, StrifeML::TrainingBatchResult& outResult) override;
     void MakeDecision(Grid<const InputType> input, gsl::span<OutputType> output) override;
     torch::Tensor PlayerNetwork::PartialForward(const torch::Tensor& input, torch::nn::Linear layer1, torch::nn::Linear layer2, torch::nn::Linear layer3);
-    torch::Tensor Forward(const torch::Tensor& playerInput, const torch::Tensor& minionInput, const torch::Tensor& buildingInput);
+    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> Forward(const torch::Tensor& playerInput, const torch::Tensor& minionInput, const torch::Tensor& buildingInput);
 };
 
 struct PlayerDecider : StrifeML::Decider<PlayerNetwork>

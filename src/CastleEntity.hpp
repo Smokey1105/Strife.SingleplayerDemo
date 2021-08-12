@@ -29,7 +29,7 @@ private:
     float _colorChangeTime = 0;
     SpriteComponent* spriteComponent;
 
-    Vector2 _spawnSlots[4];
+    Vector2 _spawnSlots[2];
     int _nextSpawnSlotId = 0;
 
     LightComponent<PointLight>* _light;
