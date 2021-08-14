@@ -177,7 +177,10 @@ void PlayerNetwork::TrainBatch(Grid<const SampleType> input, StrifeML::TrainingB
     auto movePrediction = std::get<1>(prediction);
     auto entityPrediction = std::get<2>(prediction);
 
-    //std::cout << entityPrediction << std::endl;
+    //std::cout << "move: " << std::endl << movePrediction << std::endl;
+    //std::cout << moveLabel << std::endl;
+
+    //std::cout << "attack: " << std::endl << entityPrediction << std::endl;
     //std::cout << entityLabel << std::endl;
 
     torch::Tensor moveLoss = torch::nn::functional::mse_loss(movePrediction, moveLabel, torch::nn::MSELossOptions(torch::kNone));
@@ -208,7 +211,7 @@ void PlayerNetwork::TrainBatch(Grid<const SampleType> input, StrifeML::TrainingB
         }
     }
 
-    //std::cout << moveLoss << std::endl;
+    //std::cout << "losses: " << std::endl << moveLoss << std::endl;
     //std::cout << entityLoss << std::endl;
 
     moveLoss = mean(moveLoss);
@@ -218,6 +221,16 @@ void PlayerNetwork::TrainBatch(Grid<const SampleType> input, StrifeML::TrainingB
     //std::cout << entityLoss << std::endl;
 
     torch::Tensor loss = choiceLoss + moveLoss + entityLoss;
+
+    if (loss.item<float>() > 10.0f)
+    {
+        std::cout << "move: " << std::endl << movePrediction << std::endl;
+        std::cout << moveLabel << std::endl;
+        std::cout << "attack: " << std::endl << entityPrediction << std::endl;
+        std::cout << entityLabel << std::endl;
+        std::cout << "losses: " << std::endl << moveLoss << std::endl;
+        std::cout << entityLoss << std::endl;
+    }
 
     //Log("Call backward\n");
     loss.backward();
