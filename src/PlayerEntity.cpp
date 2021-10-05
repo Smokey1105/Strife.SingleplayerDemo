@@ -190,16 +190,22 @@ void PlayerEntity::MoveTo(Vector2 position)
 
 void PlayerEntity::GetObservation(Observation& input)
 {
+    // Initialize
     input.players.clear();
     input.minions.clear();
     input.buildings.clear();
+
+    // Self
+	input.self.position = Center() / 4160.0f;
+	input.self.velocity = rigidBody->GetVelocity() / 200.0f;
+    input.self.health = health->health / static_cast<float>(health->maxHealth);
 
     for (auto player : scene->GetEntitiesOfType<PlayerEntity>()) 
     {
         PlayerObservation playerObs;
         playerObs.position = (player->Center() - Center()) / 4160.0f;
         playerObs.velocity = player->rigidBody->GetVelocity() / 200.0f;
-        playerObs.health = player->health->health / player->health->maxHealth;
+        playerObs.health = player->health->health / static_cast<float>(player->health->maxHealth);
 
         input.players.push_back(playerObs);
     }
@@ -218,7 +224,7 @@ void PlayerEntity::GetObservation(Observation& input)
         HealthBarComponent* health;
         if (minion->TryGetComponent(health))
         {
-            minionObs.health = health->health / health->maxHealth;
+            minionObs.health = health->health / static_cast<float>(health->maxHealth);
         }
         
         input.minions.push_back(minionObs);
@@ -232,7 +238,7 @@ void PlayerEntity::GetObservation(Observation& input)
         HealthBarComponent* health;
         if (tower->TryGetComponent(health))
         {
-            buildingObs.health = health->health / health->maxHealth;
+            buildingObs.health = health->health / static_cast<float>(health->maxHealth);
         }
 
         input.buildings.push_back(buildingObs);
@@ -246,7 +252,7 @@ void PlayerEntity::GetObservation(Observation& input)
         HealthBarComponent* health;
         if (castle->TryGetComponent(health))
         {
-            buildingObs.health = health->health / health->maxHealth;
+            buildingObs.health = health->health / static_cast<float>(health->maxHealth);
         }
         else
         {
@@ -256,61 +262,3 @@ void PlayerEntity::GetObservation(Observation& input)
         input.buildings.push_back(buildingObs);
     }
 }
-
-//void PlayerEntity::AttackNearestPlayer()
-//{
-//    float minDistance;
-//    PlayerEntity* nearestPlayer;
-//
-//    for (auto player : scene->GetEntitiesOfType<PlayerEntity>())
-//    {
-//        if (player->team->teamId != team->teamId && (nearestPlayer == nullptr || (player->Center() - Center()).Length() < minDistance))
-//        {
-//            minDistance = (player->Center() - Center()).Length();
-//            nearestPlayer = player;
-//        }
-//    }
-//
-//    if (nearestPlayer != nullptr)
-//    {
-//        Attack(nearestPlayer);
-//    }
-//}
-
-//void PlayerEntity::AttackNearestNonPlayer()
-//{
-//    float minDistance;
-//    Entity* nearestNonPlayer;
-//
-//    for (auto minion : scene->GetEntitiesOfType<MinionEntity>())
-//    {
-//        if (minion->team->teamId != team->teamId && (nearestNonPlayer == nullptr || (minion->Center() - Center()).Length() < minDistance))
-//        {
-//            minDistance = (minion->Center() - Center()).Length();
-//            nearestNonPlayer = minion;
-//        }
-//    }
-//
-//    for (auto tower : scene->GetEntitiesOfType<TowerEntity>())
-//    {
-//        if (tower->team->teamId != team->teamId && (nearestNonPlayer == nullptr || (tower->Center() - Center()).Length() < minDistance))
-//        {
-//            minDistance = (tower->Center() - Center()).Length();
-//            nearestNonPlayer = tower;
-//        }
-//    }
-//
-//    for (auto castle : scene->GetEntitiesOfType<CastleEntity>())
-//    {
-//        if (castle->team->teamId != team->teamId && (nearestNonPlayer == nullptr || (castle->Center() - Center()).Length() < minDistance))
-//        {
-//            minDistance = (castle->Center() - Center()).Length();
-//            nearestNonPlayer = castle;
-//        }
-//    }
-//
-//    if (nearestNonPlayer != nullptr)
-//    {
-//        Attack(nearestNonPlayer);
-//    }
-//}

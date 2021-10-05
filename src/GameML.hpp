@@ -2,10 +2,7 @@
 
 #include "Math/Vector2.hpp"
 #include "ML/ML.hpp"
-#include "TensorPacking.hpp"
 #include <torch/torch.h>
-#include "ML/GridSensor.hpp"
-
 #include "Tools/MetricsManager.hpp"
 
 struct PlayerObservation : StrifeML::ISerializable
@@ -38,14 +35,10 @@ struct Observation : StrifeML::ISerializable
 {
     void Serialize(StrifeML::ObjectSerializer& serializer) override;
 
+    PlayerObservation self;
     std::vector<PlayerObservation> players;
     std::vector<MinionObservation> minions;
     std::vector<BuildingObservation> buildings;
-
-    //temp bug fix:
-    /*PlayerObservation nearestPlayer;
-    MinionObservation nearestMinion;
-    BuildingObservation nearestBuilding;*/
 };
 
 struct TrainingLabel : StrifeML::ISerializable
@@ -59,6 +52,7 @@ struct TrainingLabel : StrifeML::ISerializable
 
 struct PlayerNetwork : StrifeML::NeuralNetwork<Observation, TrainingLabel>
 {
+    torch::nn::Linear selfEmbed1{ nullptr }, selfEmbed2{ nullptr }, selfEmbed3{ nullptr };
     torch::nn::Linear playerEmbed1{ nullptr }, playerEmbed2{ nullptr }, playerEmbed3{ nullptr };
     torch::nn::Linear minionEmbed1{ nullptr }, minionEmbed2{ nullptr }, minionEmbed3{ nullptr };
     torch::nn::Linear buildingEmbed1{ nullptr }, buildingEmbed2{ nullptr }, buildingEmbed3{ nullptr };
@@ -74,7 +68,7 @@ struct PlayerNetwork : StrifeML::NeuralNetwork<Observation, TrainingLabel>
     void TrainBatch(Grid<const SampleType> input, StrifeML::TrainingBatchResult& outResult) override;
     void MakeDecision(Grid<const InputType> input, gsl::span<OutputType> output) override;
     torch::Tensor PlayerNetwork::PartialForward(const torch::Tensor& input, torch::nn::Linear layer1, torch::nn::Linear layer2, torch::nn::Linear layer3);
-    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> Forward(const torch::Tensor& playerInput, const torch::Tensor& minionInput, const torch::Tensor& buildingInput);
+    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> Forward(const torch::Tensor& selfInput, const torch::Tensor& playerInput, const torch::Tensor& minionInput, const torch::Tensor& buildingInput);
 };
 
 struct PlayerDecider : StrifeML::Decider<PlayerNetwork>

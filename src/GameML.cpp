@@ -2,7 +2,6 @@
 #include "ML/ML.hpp"
 #include "TensorPacking.hpp"
 #include <torch/torch.h>
-#include "ML/GridSensor.hpp"
 #include "GameML.hpp"
 #include "Sample.hpp"
 
@@ -51,6 +50,10 @@ void TrainingLabel::Serialize(StrifeML::ObjectSerializer& serializer)
 PlayerNetwork::PlayerNetwork()
     : NeuralNetwork<Observation, TrainingLabel>(1)
 {
+	selfEmbed1 = module->register_module("selfEmbed1", torch::nn::Linear(5, 6));
+    selfEmbed2 = module->register_module("selfEmbed2", torch::nn::Linear(6, 12));
+    selfEmbed3 = module->register_module("selfEmbed3", torch::nn::Linear(12, 24));
+
     playerEmbed1 = module->register_module("playerEmbed1", torch::nn::Linear(5, 6));
     playerEmbed2 = module->register_module("playerEmbed2", torch::nn::Linear(6, 12));
     playerEmbed3 = module->register_module("playerEmbed3", torch::nn::Linear(12, 24));
@@ -63,20 +66,33 @@ PlayerNetwork::PlayerNetwork()
     buildingEmbed2 = module->register_module("buildingEmbed2", torch::nn::Linear(6, 12));
     buildingEmbed3 = module->register_module("buildingEmbed3", torch::nn::Linear(12, 24));
 
-    action1 = module->register_module("action1", torch::nn::Linear(72, 72));
-    action2 = module->register_module("action2", torch::nn::Linear(72, 72));
-    action3 = module->register_module("action3", torch::nn::Linear(72, 3));
+    action1 = module->register_module("action1", torch::nn::Linear(96, 96));
+    action2 = module->register_module("action2", torch::nn::Linear(96, 96));
+    action3 = module->register_module("action3", torch::nn::Linear(96, 3));
 
-    move1 = module->register_module("move1", torch::nn::Linear(72, 72));
-    move2 = module->register_module("move2", torch::nn::Linear(72, 72));
-    move3 = module->register_module("move3", torch::nn::Linear(72, 2));
+    move1 = module->register_module("move1", torch::nn::Linear(96, 96));
+    move2 = module->register_module("move2", torch::nn::Linear(96, 96));
+    move3 = module->register_module("move3", torch::nn::Linear(96, 2));
 
-    entity1 = module->register_module("entity1", torch::nn::Linear(72, 72));
-    entity2 = module->register_module("entity2", torch::nn::Linear(72, 72));
-    entity3 = module->register_module("entity3", torch::nn::Linear(72, 3));
+    entity1 = module->register_module("entity1", torch::nn::Linear(96, 96));
+    entity2 = module->register_module("entity2", torch::nn::Linear(96, 96));
+    entity3 = module->register_module("entity3", torch::nn::Linear(96, 3));
 
     optimizer = std::make_shared<torch::optim::Adam>(module->parameters(), 1e-3);
     module->to(device);
+}
+
+FixedSizeGrid<float, 1, 5> ConvertSelf(const PlayerObservation sample)
+{
+    FixedSizeGrid<float, 1, 5> grid;
+
+    grid[0][0] = sample.position.x;
+    grid[0][1] = sample.position.y;
+    grid[0][2] = sample.velocity.x;
+    grid[0][3] = sample.velocity.y;
+    grid[0][4] = sample.health;
+
+    return grid;
 }
 
 FixedSizeGrid<float, 4, 5> ConvertPlayer(const Observation sample)
@@ -167,6 +183,7 @@ void PlayerNetwork::TrainBatch(Grid<const SampleType> input, StrifeML::TrainingB
     optimizer->zero_grad();
 
     //Log("Pack spatial\n");
+    torch::Tensor selfInput = PackIntoTensor(input, [=](auto& sample) { return ConvertSelf(sample.input.self); }).to(device);
     torch::Tensor playerInput = PackIntoTensor(input, [=](auto& sample) { return ConvertPlayer(sample.input); }).to(device);
     torch::Tensor minionInput = PackIntoTensor(input, [=](auto& sample) { return ConvertMinion(sample.input); }).to(device);
     torch::Tensor buildingInput = PackIntoTensor(input, [=](auto& sample) { return ConvertBuilding(sample.input); }).to(device);
@@ -177,7 +194,7 @@ void PlayerNetwork::TrainBatch(Grid<const SampleType> input, StrifeML::TrainingB
     torch::Tensor entityLabel = PackIntoTensor(input, [=](auto& sample) { return static_cast<int64_t>(sample.output.entityChoice); }).to(device).squeeze();
 
     //Log("Predicting...\n");
-    auto prediction = Forward(playerInput, minionInput, buildingInput);
+    auto prediction = Forward(selfInput, playerInput, minionInput, buildingInput);
 
     //std::cout << std::get<0>(prediction) << std::endl;
     //std::cout << actionLabel << std::endl;
@@ -266,10 +283,11 @@ void PlayerNetwork::MakeDecision(Grid<const InputType> input, gsl::span<OutputTy
         torch::Device cpu(torch::kCPU);
         module->to(cpu);
         module->eval();
+        auto selfInput = PackIntoTensor(input, [=](auto& sample) { return ConvertSelf(sample.self); });
         auto playerInput = PackIntoTensor(input, [=](auto& sample) { return ConvertPlayer(sample); });
         auto minionInput = PackIntoTensor(input, [=](auto& sample) { return ConvertMinion(sample); });
         auto buildingInput = PackIntoTensor(input, [=](auto& sample) { return ConvertBuilding(sample); });
-        auto action = Forward(playerInput, minionInput, buildingInput);
+        auto action = Forward(selfInput, playerInput, minionInput, buildingInput);
 
         //std::cout << "choice: " << std::endl << std::get<0>(action) << std::endl;
         //std::cout << "move: " << std::endl << std::get<1>(action) << std::endl;
@@ -323,17 +341,18 @@ torch::Tensor PlayerNetwork::PartialForward(const torch::Tensor& input, torch::n
     }
 }
 
-std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> PlayerNetwork::Forward(const torch::Tensor& playerInput, const torch::Tensor& minionInput, const torch::Tensor& buildingInput)
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> PlayerNetwork::Forward(const torch::Tensor& selfInput, const torch::Tensor& playerInput, const torch::Tensor& minionInput, const torch::Tensor& buildingInput)
 {
-    //std::cout << "player: " << playerInput << std::endl;
+    //std::cout << "self: " << selfInput.sizes() << std::endl;
+	//std::cout << "player: " << playerInput << std::endl;
     //std::cout << "minion: " << minionInput << std::endl;
     //std::cout << "building: " << buildingInput << std::endl;
 
+    torch::Tensor sEmbed = PartialForward(selfInput, selfEmbed1, selfEmbed2, selfEmbed3);
     torch::Tensor pEmbed = PartialForward(playerInput, playerEmbed1, playerEmbed2, playerEmbed3);
     torch::Tensor mEmbed = PartialForward(minionInput, minionEmbed1, minionEmbed2, minionEmbed3);
     torch::Tensor bEmbed = PartialForward(buildingInput, buildingEmbed1, buildingEmbed2, buildingEmbed3);
-
-    torch::Tensor postRep = torch::cat({pEmbed, mEmbed, bEmbed}, 1);
+    torch::Tensor postRep = torch::cat({sEmbed, pEmbed, mEmbed, bEmbed}, 1);
 
     //std::cout << "postRep-mean: " << std::endl;
 	//std::cout << mean(postRep, 1) << std::endl;
