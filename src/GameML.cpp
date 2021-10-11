@@ -92,6 +92,15 @@ FixedSizeGrid<float, 4, 5> ConvertPlayer(const Observation sample)
         grid[i][4] = sample.players[i].health;
     }
 
+	for (int i = sample.players.size(); i < 4; i++)
+    {
+        grid[i][0] = 0;
+        grid[i][1] = 0;
+        grid[i][2] = 0;
+        grid[i][3] = 0;
+        grid[i][4] = 0;
+    }
+
     return grid;
 }
 
@@ -108,14 +117,14 @@ FixedSizeGrid<float, 12, 5> ConvertMinion(const Observation sample)
         grid[i][4] = sample.minions[i].health;
     }
 
-    /*for (int i = sample.minions.size(); i < 12; i++)
+    for (int i = sample.minions.size(); i < 12; i++)
     {
         grid[i][0] = 0;
         grid[i][1] = 0;
         grid[i][2] = 0;
         grid[i][3] = 0;
         grid[i][4] = 0;
-    }*/
+    }
 
     return grid;
 }
@@ -129,6 +138,14 @@ FixedSizeGrid<float, 4, 3> ConvertBuilding(const Observation sample)
         grid[i][0] = sample.buildings[i].position.x;
         grid[i][1] = sample.buildings[i].position.y;
         grid[i][2] = sample.buildings[i].health;
+    }
+
+    // todo there should be a faster way to fill the grid with 0s
+	for (int i = sample.buildings.size(); i < 4; i++)
+    {
+        grid[i][0] = 0;
+        grid[i][1] = 0;
+        grid[i][2] = 0;
     }
 
     return grid;
@@ -150,7 +167,6 @@ void PlayerNetwork::TrainBatch(Grid<const SampleType> input, StrifeML::TrainingB
     optimizer->zero_grad();
 
     //Log("Pack spatial\n");
-    //Changed from vectors to singletons (TEMP FIX)
     torch::Tensor playerInput = PackIntoTensor(input, [=](auto& sample) { return ConvertPlayer(sample.input); }).to(device);
     torch::Tensor minionInput = PackIntoTensor(input, [=](auto& sample) { return ConvertMinion(sample.input); }).to(device);
     torch::Tensor buildingInput = PackIntoTensor(input, [=](auto& sample) { return ConvertBuilding(sample.input); }).to(device);
@@ -255,9 +271,9 @@ void PlayerNetwork::MakeDecision(Grid<const InputType> input, gsl::span<OutputTy
         auto buildingInput = PackIntoTensor(input, [=](auto& sample) { return ConvertBuilding(sample); });
         auto action = Forward(playerInput, minionInput, buildingInput);
 
-        /*std::cout << "choice: " << std::endl << std::get<0>(action) << std::endl;
-        std::cout << "move: " << std::endl << std::get<1>(action) << std::endl;
-        std::cout << "attack: " << std::endl << std::get<2>(action) << std::endl;*/
+        //std::cout << "choice: " << std::endl << std::get<0>(action) << std::endl;
+        //std::cout << "move: " << std::endl << std::get<1>(action) << std::endl;
+        //std::cout << "attack: " << std::endl << std::get<2>(action) << std::endl;
 
         for (int i = 0; i < output.size(); ++i)
         {
@@ -265,9 +281,6 @@ void PlayerNetwork::MakeDecision(Grid<const InputType> input, gsl::span<OutputTy
             output[i].actionIndex = *index.data_ptr<int64_t>();
 
             torch::Tensor move = std::get<1>(action).index({ i });
-
-            //std::cout << move << std::endl;
-
             output[i].moveCoord.x = *move.index({ 0 }).data_ptr<float>();
             output[i].moveCoord.y = *move.index({ 1 }).data_ptr<float>(); 
 
@@ -295,28 +308,12 @@ torch::Tensor PlayerNetwork::PartialForward(const torch::Tensor& input, torch::n
 {
     try 
     {
-        //std::cout << input.sizes() << std::endl;
-
         torch::Tensor x;
-
         x = relu(layer1->forward(input));
-
-        //std::cout << x.sizes() << std::endl;
-
         x = relu(layer2->forward(x));
-        /*x = dropout(x, 0.5, module->is_training());
-        x = max_pool2d(x, { 2, 2 });*/
-
-        //std::cout << x.sizes() << std::endl;
-
-        x = relu(layer3->forward(x));
-        /*x = dropout(x, 0.5, module->is_training());
-        x = max_pool2d(x, { 2, 2 });*/
-
-        x = mean(x, 2).squeeze();
-
-        //std::cout << x.sizes() << std::endl;
-
+        x = layer3->forward(x);  // todo brendan do we need relu here?
+        x = sum(x, 2).squeeze();
+        
         return x;
     }
     catch (const std::exception& e) 
@@ -324,9 +321,6 @@ torch::Tensor PlayerNetwork::PartialForward(const torch::Tensor& input, torch::n
         std::cout << e.what() << std::endl;
         throw;
     }
-
-    
-
 }
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> PlayerNetwork::Forward(const torch::Tensor& playerInput, const torch::Tensor& minionInput, const torch::Tensor& buildingInput)
@@ -341,44 +335,20 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> PlayerNetwork::Forward(c
 
     torch::Tensor postRep = torch::cat({pEmbed, mEmbed, bEmbed}, 1);
 
-    //std::cout << postRep << std::endl;
-
-    //if (sequenceLength > 1)
-    //{
-    //    x = spatialInput.view({ -1, height, width });
-    //}
-    //else
-    //{
-    //    x = squeeze(spatialInput, 1);
-    //}
-
-    //x = x.permute({ 0, 3, 1, 2 }); 
-
+    //std::cout << "postRep-mean: " << std::endl;
+	//std::cout << mean(postRep, 1) << std::endl;
+    
     torch::Tensor action = relu(action1->forward(postRep));
     action = relu(action2->forward(action));
-    action = relu(action3->forward(action));
+    action = action3->forward(action);
 
     torch::Tensor move = relu(move1->forward(postRep));
     move = relu(move2->forward(move));
-
-    //std::cout << move << std::endl;
-
-    move = relu(move3->forward(move));
-
-    //std::cout << move << std::endl;
+    move = move3->forward(move);
 
     torch::Tensor entity = relu(entity1->forward(postRep));
     entity = relu(entity2->forward(entity));
-    entity = relu(entity3->forward(entity));
-
-    //if (sequenceLength > 1)
-    //{
-    //    x = x.view({ sequenceLength, batchSize, 128 });
-    //}
-    //else
-    //{
-    //    x = x.view({ batchSize, 128 });
-    //}
+    entity = entity3->forward(entity);
 
     action = log_softmax(action, 1).squeeze();
     move = sigmoid(move).squeeze();
